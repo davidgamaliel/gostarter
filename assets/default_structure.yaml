@@ -1,0 +1,14 @@
+assets:
+cmd:
+  http: main.go
+configs:
+deployments:
+docs:
+internal:
+  your_app_domain_1:
+    handler:
+    model:
+    repository:
+    usecase:
+pkg:
+web:

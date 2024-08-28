@@ -3,11 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
-	"time"
 
-	"github.com/bitzero/gostarter/pkg/filestructure"
-	"github.com/bitzero/gostarter/pkg/gomodule"
+	"github.com/bitzero/gostarter/internal/program"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/template/html/v2"
 	"github.com/google/uuid"
@@ -45,34 +44,26 @@ func generate(c *fiber.Ctx) error {
 }
 
 func GenerateBoilerPlate() string {
-	tempFolderPath := "./tmp/gostarter"
+	projectName := "github.com/builder"
+
+	tempFolderPath := "/mnt/d/source/go/src/github.com/learn_stuff/go-starter/tmp/gostarter"
+	defaultDirStructPath := "/mnt/d/source/go/src/github.com/learn_stuff/go-starter/assets/default_structure.yaml"
 	requestID := uuid.New().String()
 	fullpath := tempFolderPath + "/" + requestID
 	fmt.Println("Fullpath:", fullpath)
 
-	err := filestructure.CreateFolderStructure(fullpath)
+	project, err := program.CreateProject(projectName, fullpath, defaultDirStructPath)
 	if err != nil {
-		fmt.Println("Failed to create folder structure:", err)
-		return ""
+		slog.Error("Failed to create project", err)
 	}
 
-	err = gomodule.GenerateGoMod(fullpath)
+	project.SetDBDriver("mysql")
+
+	err = project.CreateMainFile()
 	if err != nil {
-		fmt.Println("Failed to generate go.mod file:", err)
+		slog.Error("Failed to create main file", err)
 		return ""
 	}
-
-	err = filestructure.WrapToZip(fullpath)
-	if err != nil {
-		fmt.Println("Failed to wrap files and folders to zip:", err)
-		return ""
-	}
-
-	fmt.Println("Successfully generated go.mod file and wrapped to zip.")
-	go func() {
-		time.Sleep(10 * time.Second)
-		filestructure.CleanUp(fullpath)
-	}()
 
 	return fullpath + "/generated.zip"
 }

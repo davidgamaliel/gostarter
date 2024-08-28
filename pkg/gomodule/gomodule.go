@@ -1,34 +1,40 @@
 package gomodule
 
 import (
-	"os"
+	"bytes"
+	"log/slog"
+	"os/exec"
 )
 
-func GenerateGoMod(tempFolderPath string) error {
-	content := []byte("module github.com/bitzero/teststarter")
-	content = append(content, []byte("\n")...)
-	content = append(content, []byte("\n")...)
-	content = append(content, []byte("go 1.22")...)
-	content = append(content, []byte("\n")...)
-	content = append(content, []byte("\n")...)
-	content = append(content, []byte("require (")...)
-	content = append(content, []byte("\n")...)
-	content = append(content, []byte("\tgithub.com/go-sql-driver/mysql")...)
-	content = append(content, []byte("\n")...)
-	content = append(content, []byte(")")...)
-
-	err := os.WriteFile(tempFolderPath+"/go.mod", content, os.ModePerm)
+func GenerateGoMod(tempFolderPath, name string) error {
+	err := ExecuteCmd("go", []string{"mod", "init", name}, tempFolderPath)
 	if err != nil {
+		slog.Error("Failed to generate go.mod file", err)
 		return err
+
+	}
+	return nil
+}
+
+func GoGetPackage(appDir string, packages []string) error {
+	for _, packageName := range packages {
+		if err := ExecuteCmd("go",
+			[]string{"get", "-u", packageName},
+			appDir); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-// module github.com/bitzero/teststarter
-
-// 		go 1.20
-
-// 		require (
-// 			github.com/go-sql-driver/mysql
-// 		)
+func ExecuteCmd(name string, args []string, dir string) error {
+	command := exec.Command(name, args...)
+	command.Dir = dir
+	var out bytes.Buffer
+	command.Stdout = &out
+	if err := command.Run(); err != nil {
+		return err
+	}
+	return nil
+}
